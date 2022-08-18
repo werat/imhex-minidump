@@ -1,2 +1,5 @@
 # imhex-minidump
- Pattern for the minidump format for ImHex Editor
+
+> Note: this is work in progress, not complete!
+
+Pattern for the minidump format for ImHex Editor.
