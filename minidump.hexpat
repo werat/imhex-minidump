@@ -27,7 +27,8 @@ struct MINIDUMP_HEADER {
 	u32 stream_count;
 	u32 stream_directory_rva;
 	u32 checksum;
-	u32 time_date_stamp [[format("timestamp")]];
+	// Disable the formatter, it crashes ImHex 1.21.2
+	u32 time_date_stamp; // [[format("timestamp")]];
 	u64 flags;
 };
 
