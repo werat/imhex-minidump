@@ -207,7 +207,10 @@ struct MINIDUMP_MODULE {
 	u64 reserved1;
 
 	MINIDUMP_STRING module_name @ module_name_rva;
-	CodeView code_view @ cv_record.rva;
+
+    if (cv_record.data_size > 0) {
+	    CodeView code_view @ cv_record.rva;
+    }
 };
 
 struct MINIDUMP_MODULE_LIST {
