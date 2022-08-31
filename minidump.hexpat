@@ -9,17 +9,6 @@ fn timestamp(u128 ts) {
 	return std::time::format(time);
 };
 
-// Taken from https://blog.xorhex.com/blog/quickimhexpatternyaratutorial
-fn guid(u128 value){
-	u32 one = value & 0xffffffff;
-	u16 two = value >> 8*4 & 0x0000ffff;
-	u16 three = value >> 8*6 & 0x0000ffff;
-	be u16 fourth = value >> 8*8 & 0x0000ffff;
-	be u32 fifthPartOne = value >> 8*10 & 0xffffffff;
-	be u16 fifthPartTwo = value >> 8*14 & 0x0000ffff;
-	return std::format("{:x}-{:x}-{:x}-{:x}-{:x}{:x}", one, two, three, fourth, fifthPartOne, fifthPartTwo);
-};
-
 struct MINIDUMP_HEADER {
 	char signature[4];  // Must be MDMP
 	u16 magic;  // Implementation specific magic, typically [0x93, 0xa7]
@@ -190,7 +179,7 @@ enum CvSignature : u32 {
 struct CodeView {
 	CvSignature signature;
 	// TODO: switch based on the signature.
-	u128 pdb_guid [[format("guid")]];
+	u128 pdb_guid;
 	u32 age;
 	char pdb_path[];
 };
@@ -298,17 +287,34 @@ struct MINIDUMP_DIRECTORY {
 	MINIDUMP_STREAM_TYPE stream_type;
 	u32 data_size;
 	u32 rva;
-
-	if (stream_type == MINIDUMP_STREAM_TYPE::SystemInfoStream) {
-		MINIDUMP_SYSTEM_INFO system_info @ rva;
-	} else if (stream_type == MINIDUMP_STREAM_TYPE::ModuleListStream) {
-		MINIDUMP_MODULE_LIST module_list @ rva;
-	} else if (stream_type == MINIDUMP_STREAM_TYPE::ThreadListStream) {
-		MINIDUMP_THREAD_LIST thread_list @ rva;
-	} else if (stream_type == MINIDUMP_STREAM_TYPE::MemoryListStream) {
-		MINIDUMP_MEMORY_LIST memory_list @ rva;
-	}
 };
 
 MINIDUMP_HEADER minidump_header @ 0x00;
-MINIDUMP_DIRECTORY streams[minidump_header.stream_count] @ minidump_header.stream_directory_rva;
+MINIDUMP_DIRECTORY minidump_directory[minidump_header.stream_count] @ minidump_header.stream_directory_rva;
+
+// Index of the current stream in the stream list.
+u16 streamIndex;
+
+struct Stream {
+
+	if (minidump_directory[streamIndex].stream_type == MINIDUMP_STREAM_TYPE::SystemInfoStream) {
+		MINIDUMP_SYSTEM_INFO system_info;
+	} else if (minidump_directory[streamIndex].stream_type == MINIDUMP_STREAM_TYPE::ModuleListStream) {
+		MINIDUMP_MODULE_LIST module_list;
+	} else if (minidump_directory[streamIndex].stream_type == MINIDUMP_STREAM_TYPE::ThreadListStream) {
+		MINIDUMP_THREAD_LIST thread_list;
+	} else if (minidump_directory[streamIndex].stream_type == MINIDUMP_STREAM_TYPE::MemoryListStream) {
+		MINIDUMP_MEMORY_LIST memory_list;
+	}
+
+	// Move the current offset to the start of the next stream.
+	if (streamIndex < minidump_header.stream_count-1) {
+		streamIndex = streamIndex + 1;
+		if (minidump_directory[streamIndex].data_size > 0) {
+			$ = minidump_directory[streamIndex].rva;
+		}
+	}
+
+} [[inline]];
+
+Stream streams[minidump_header.stream_count] @ minidump_directory[0].rva;
