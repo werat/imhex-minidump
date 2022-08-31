@@ -175,13 +175,20 @@ enum CvSignature : u32 {
 	Cv50 = 0x3131424e,
 };
 
-// CV_INFO_PDB70
+u32 codeViewSize;
+
 struct CodeView {
 	CvSignature signature;
-	// TODO: switch based on the signature.
-	u128 pdb_guid;
-	u32 age;
-	char pdb_path[];
+
+	if (signature == CvSignature::Pdb70) {
+		// CV_INFO_PDB70
+		u128 pdb_guid;
+		u32 age;
+		char pdb_path[codeViewSize - 20];
+	} else if (signature == CvSignature::Elf) {
+		// CV_INFO_ELF
+		u8 build_id[codeViewSize];
+	}
 };
 
 struct MINIDUMP_MODULE {
@@ -199,6 +206,7 @@ struct MINIDUMP_MODULE {
 	MINIDUMP_STRING module_name @ module_name_rva;
 
 	if (cv_record.data_size > 0) {
+		codeViewSize = cv_record.data_size;
 		CodeView code_view @ cv_record.rva;
 	}
 };
