@@ -291,6 +291,23 @@ struct MINIDUMP_MEMORY_LIST {
 	MINIDUMP_MEMORY_DESCRIPTOR memory_ranges[num_memory_ranges];
 };
 
+struct MINIDUMP_EXCEPTION {
+	u32 exception_code;
+	u32 exception_flags;
+	u64 exception_record;
+	u64 exception_address;
+	u32 number_parameters;
+	u32 __align;
+	u64 exception_information[15];
+};
+
+struct MINIDUMP_EXCEPTION_STREAM {
+	u32 thread_id;
+	u32 __align;
+	MINIDUMP_EXCEPTION exception_record;
+	MINIDUMP_LOCATION_DESCRIPTOR thread_context;
+};
+
 struct MINIDUMP_DIRECTORY {
 	MINIDUMP_STREAM_TYPE stream_type;
 	u32 data_size;
@@ -313,6 +330,8 @@ struct Stream {
 		MINIDUMP_THREAD_LIST thread_list;
 	} else if (minidump_directory[streamIndex].stream_type == MINIDUMP_STREAM_TYPE::MemoryListStream) {
 		MINIDUMP_MEMORY_LIST memory_list;
+	} else if (minidump_directory[streamIndex].stream_type == MINIDUMP_STREAM_TYPE::ExceptionStream) {
+		MINIDUMP_EXCEPTION_STREAM exception;
 	}
 
 	// Move the current offset to the start of the next stream.
