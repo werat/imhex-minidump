@@ -308,6 +308,57 @@ struct MINIDUMP_EXCEPTION_STREAM {
 	MINIDUMP_LOCATION_DESCRIPTOR thread_context;
 };
 
+enum MemoryState : u32 {
+	MEM_COMMIT  = 0x01000,
+	MEM_FREE    = 0x10000,
+	MEM_RESERVE = 0x02000,
+};
+
+enum MemoryProtection : u32 {
+	PAGE_NOACCESS           = 0x01,
+	PAGE_READONLY           = 0x02,
+	PAGE_READWRITE          = 0x04,
+	PAGE_WRITECOPY          = 0x08,
+	PAGE_EXECUTE            = 0x10,
+	PAGE_EXECUTE_READ       = 0x20,
+	PAGE_EXECUTE_READWRITE  = 0x40,
+	PAGE_EXECUTE_WRITECOPY  = 0x80,
+	ACCESS_MASK             = 0xff,
+	PAGE_GUARD              = 0x100,
+	PAGE_NOCACHE            = 0x200,
+	PAGE_WRITECOMBINE       = 0x400,
+};
+
+enum MemoryType : u32 {
+	MEM_PRIVATE = 0x00020000,
+	MEM_MAPPED  = 0x00040000,
+	MEM_IMAGE   = 0x01000000,
+};
+
+struct MINIDUMP_MEMORY_INFO {
+	u64 base_address;
+	u64 allocation_base;
+	u32 allocation_protection;
+	u32 __alignment1;
+	u64 region_size;
+	MemoryState state;
+	MemoryProtection protection;
+	MemoryType _type;
+	u32 __alignment2;
+};
+
+// The number of entries in MINIDUMP_MEMORY_INFO_LIST can be veeery large.
+#pragma array_limit 5000000
+#pragma pattern_limit 10000000
+
+struct MINIDUMP_MEMORY_INFO_LIST {
+	u32 size_of_header;
+	u32 size_of_entry;
+	u64 number_of_entries;
+
+	MINIDUMP_MEMORY_INFO entries[number_of_entries];
+};
+
 struct MINIDUMP_DIRECTORY {
 	MINIDUMP_STREAM_TYPE stream_type;
 	u32 data_size;
@@ -332,6 +383,8 @@ struct Stream {
 		MINIDUMP_MEMORY_LIST memory_list;
 	} else if (minidump_directory[streamIndex].stream_type == MINIDUMP_STREAM_TYPE::ExceptionStream) {
 		MINIDUMP_EXCEPTION_STREAM exception;
+	} else if (minidump_directory[streamIndex].stream_type == MINIDUMP_STREAM_TYPE::MemoryInfoListStream) {
+		MINIDUMP_MEMORY_INFO_LIST memory_info_list;
 	}
 
 	// Move the current offset to the start of the next stream.
